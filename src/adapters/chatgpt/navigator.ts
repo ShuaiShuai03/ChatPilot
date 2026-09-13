@@ -1,13 +1,15 @@
 import type { ConversationIndex } from '../../conversation';
 import type { ConversationStore } from '../../conversation/store';
 
-export function getScrollRoot(root: HTMLElement): HTMLElement {
-  const explicit = root.closest<HTMLElement>('[data-scroll-root]');
+export function getScrollRoot(root: HTMLElement, anchor?: HTMLElement): HTMLElement {
+  const start = anchor?.isConnected ? anchor.parentElement ?? root : root;
+  const explicit = start.closest<HTMLElement>('[data-scroll-root]');
   if (explicit) return explicit;
-  let ancestor: HTMLElement | null = root;
+  let ancestor: HTMLElement | null = start;
   while (ancestor && ancestor !== root.ownerDocument.body) {
     const style = getComputedStyle(ancestor);
-    if (/(auto|scroll)/.test(style.overflowY) && ancestor.scrollHeight > ancestor.clientHeight) return ancestor;
+    // A short/loading conversation still owns its future scroll container.
+    if (/(auto|scroll)/.test(style.overflowY)) return ancestor;
     ancestor = ancestor.parentElement;
   }
   return root.ownerDocument.scrollingElement as HTMLElement ?? root.ownerDocument.documentElement;
@@ -60,6 +62,17 @@ export class CurrentMessageTracker {
   dispose(): void { this.unsubscribe(); this.observer.disconnect(); this.observed.clear(); this.visible.clear(); }
 }
 
-export function scrollToMessage(element: HTMLElement, smooth: boolean): void {
-  element.scrollIntoView({ behavior: smooth && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 'smooth' : 'instant', block: 'center' });
+export function scrollViewportTop(root: HTMLElement): number {
+  return root === root.ownerDocument.scrollingElement ? 0 : root.getBoundingClientRect().top + root.clientTop;
+}
+
+export function messageScrollTop(element: HTMLElement, root: HTMLElement): number {
+  const top = root.scrollTop + element.getBoundingClientRect().top - scrollViewportTop(root) - root.clientHeight * 0.23;
+  return Math.max(0, Math.min(top, root.scrollHeight - root.clientHeight));
+}
+
+export function scrollToMessage(element: HTMLElement, smooth: boolean, root: HTMLElement): void {
+  // Move only the conversation, not every scrollable ancestor or the page viewport.
+  root.scrollTo({ top: messageScrollTop(element, root),
+    behavior: smooth && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 'smooth' : 'instant' });
 }

@@ -289,19 +289,18 @@ export function Navigator({ controller, settings }: NavigatorProps) {
             ↓
           </button>
         </div>
-        {!expanded ? (
-          <button
-            type="button"
-            className="chatpilot-rail-button"
-            aria-expanded="false"
-            aria-label={zh.openNavigator}
-            ref={railButtonRef}
-            onClick={openPanel}
-          >
-            <span className="chatpilot-rail-button__label">{zh.openNavigator}</span>
-            <span className="chatpilot-count" aria-hidden="true">{snapshot.messages.length}</span>
-          </button>
-        ) : null}
+        <button
+          type="button"
+          className="chatpilot-rail-button"
+          aria-expanded={expanded}
+          hidden={expanded}
+          aria-label={zh.openNavigator}
+          ref={railButtonRef}
+          onClick={openPanel}
+        >
+          <span className="chatpilot-rail-button__label">{zh.openNavigator}</span>
+          <span className="chatpilot-count" aria-hidden="true">{snapshot.messages.length}</span>
+        </button>
       </div>
     </aside>
   );

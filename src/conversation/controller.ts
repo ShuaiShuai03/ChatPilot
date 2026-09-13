@@ -29,7 +29,9 @@ export class ConversationController implements ChatPilotController {
   private tracker?: CurrentMessageTracker;
   private materializer?: ConversationMaterializer;
   private userNavigator?: UserMessageNavigator;
+  private scrollRoot?: HTMLElement;
   private stopContent?: () => void;
+  private stopNavigationSync?: () => void;
   private lifetimeObserver?: MutationObserver;
   private bootstrapObserver?: MutationObserver;
   private transitionObserver?: MutationObserver;
@@ -89,7 +91,6 @@ export class ConversationController implements ChatPilotController {
     this.key = nextKey;
     this.generation++;
     this.operation?.abort('conversation-changed');
-    this.operation = undefined;
     this.store.setOperation(false);
     if (!this.settings.navigatorEnabled || this.disposed) return;
     const oldIndex = this.index;
@@ -159,11 +160,22 @@ export class ConversationController implements ChatPilotController {
     this.index = index;
     index.initialize();
     this.stopContent = observeConversation(index);
-    const scrollRoot = getScrollRoot(root);
+    this.attachNavigation();
+    this.stopNavigationSync = index.subscribe(() => { if (!this.operation) this.attachNavigation(); });
+    this.watchAncestry(root);
+  }
+
+  private attachNavigation(): void {
+    const index = this.index;
+    if (!index) return;
+    const scrollRoot = getScrollRoot(index.root, index.orderedSlots().find(slot => slot.anchor.isConnected)?.anchor);
+    if (scrollRoot === this.scrollRoot) return;
+    this.userNavigator?.dispose();
+    this.tracker?.dispose();
+    this.scrollRoot = scrollRoot;
     this.tracker = new CurrentMessageTracker(index, this.store, scrollRoot);
     this.materializer = new ConversationMaterializer(index, scrollRoot, this.tracker);
     this.userNavigator = new UserMessageNavigator(index, scrollRoot, this.tracker, this.materializer);
-    this.watchAncestry(root);
   }
 
   private watchAncestry(root: HTMLElement): void {
@@ -196,9 +208,11 @@ export class ConversationController implements ChatPilotController {
 
   private detach(): void {
     this.operation?.abort('conversation-changed');
-    this.operation = undefined;
+    // Keep the operation lock until its asynchronous restoration has finished.
     this.stopContent?.();
     this.stopContent = undefined;
+    this.stopNavigationSync?.();
+    this.stopNavigationSync = undefined;
     this.userNavigator?.dispose();
     this.userNavigator = undefined;
     this.tracker?.dispose();
@@ -206,6 +220,8 @@ export class ConversationController implements ChatPilotController {
     this.index?.dispose();
     this.index = undefined;
     this.materializer = undefined;
+    this.scrollRoot = undefined;
+    this.store.setOperation(false);
   }
 
   private stopLifetime(): void {
@@ -236,9 +252,11 @@ export class ConversationController implements ChatPilotController {
   navigateUser = async (direction: UserNavigationDirection): Promise<void> => { await this.runNavigation(direction, true); };
 
   private async runNavigation(target: string, directional: boolean): Promise<void> {
+    if (this.operation) return;
+    this.attachNavigation();
     const navigator = this.userNavigator;
     const index = this.index;
-    if (!navigator || !index || this.operation || this.store.getSnapshot().needsReindex) return;
+    if (!navigator || !index || this.store.getSnapshot().needsReindex) return;
     if (conversationKey(new URL(location.href)) !== this.key) return;
     const operation = new AbortController();
     this.operation = operation;
@@ -251,10 +269,12 @@ export class ConversationController implements ChatPilotController {
     } catch (error) {
       if (generation === this.generation) this.store.setError(error instanceof Error ? error.message : '无法定位这条消息。');
     } finally {
-      if (generation === this.generation && this.operation === operation) {
+      if (this.operation === operation) {
         this.operation = undefined;
-        this.store.setOperation(false);
-        navigator.refresh();
+        if (generation === this.generation) {
+          this.store.setOperation(false);
+          navigator.refresh();
+        }
       }
     }
   }
@@ -263,9 +283,10 @@ export class ConversationController implements ChatPilotController {
   export = async (format: ExportFormat, mode: ExportMode): Promise<void> => { await this.collectAndExport(format, mode); };
 
   private async collectAndExport(format?: ExportFormat, mode: ExportMode = 'all'): Promise<void> {
+    if (this.operation) return;
+    this.attachNavigation();
     const materializer = this.materializer;
     const index = this.index;
-    if (this.operation) return;
     if (!index || !materializer) { this.store.setError('请先打开一个 ChatGPT 会话。'); return; }
     const operation = new AbortController();
     this.operation = operation;
@@ -304,7 +325,10 @@ export class ConversationController implements ChatPilotController {
     } catch (error) {
       if (generation === this.generation) this.store.setError(error instanceof Error ? error.message : '无法加载会话，请重试。');
     } finally {
-      if (generation === this.generation && this.operation === operation) { this.operation = undefined; this.store.setOperation(false); }
+      if (this.operation === operation) {
+        this.operation = undefined;
+        if (generation === this.generation) this.store.setOperation(false);
+      }
     }
   }
 

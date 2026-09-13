@@ -1,5 +1,5 @@
 import type { ConversationIndex, TurnSlot } from '../../conversation';
-import type { CurrentMessageTracker } from './navigator';
+import { scrollToMessage, type CurrentMessageTracker } from './navigator';
 import type { MessageRecord } from '../../conversation/types';
 
 export type MaterializationResult =
@@ -112,7 +112,7 @@ export class ConversationMaterializer {
           if (!slot.body?.isConnected || !slot.record) {
             if (!slot.anchor.isConnected) continue; // A shell-less virtual list is swept below.
             moves++;
-            slot.anchor.scrollIntoView({ behavior: 'instant', block: 'center' });
+            scrollToMessage(slot.anchor, false, scrollRoot);
             if (!await quiet()) return failure(cancellationReason());
             const body = await waitForBody(index, slot, operationSignal);
             if (!bounded()) return failure(cancellationReason());
@@ -158,7 +158,7 @@ export class ConversationMaterializer {
       if (!userMoved && index.active && index.root.isConnected) {
         if (wasAtBottom) scrollRoot.scrollTo({ top: scrollRoot.scrollHeight, behavior: 'instant' });
         else if (originalSlot?.anchor.isConnected && anchorOffset !== undefined) {
-          originalSlot.anchor.scrollIntoView({ behavior: 'instant', block: 'start' });
+          scrollRoot.scrollBy({ top: originalSlot.anchor.getBoundingClientRect().top - anchorOffset, behavior: 'instant' });
           await pause(60);
           if (index.active && originalSlot.anchor.isConnected) scrollRoot.scrollBy({
             top: originalSlot.anchor.getBoundingClientRect().top - anchorOffset, behavior: 'instant',

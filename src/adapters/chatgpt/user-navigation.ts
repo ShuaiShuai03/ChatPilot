@@ -1,7 +1,7 @@
 import type { ConversationIndex, TurnSlot } from './index';
 import type { MessageRecord, UserNavigationDirection } from '../../conversation/types';
 import { ConversationMaterializer, MATERIALIZATION_LIMITS, waitForBody } from './materializer';
-import { CurrentMessageTracker, scrollToMessage } from './navigator';
+import { CurrentMessageTracker, messageScrollTop, scrollToMessage, scrollViewportTop } from './navigator';
 
 /** Unknown slots are candidates until the shared parser establishes their role. */
 export function userCandidates<T extends { record?: MessageRecord }>(slots: readonly T[], reference: number, direction: UserNavigationDirection): T[] {
@@ -16,7 +16,7 @@ const navigationKeys = ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'E
 
 /** Adapter-owned cursor and bounded scrolling. No content is parsed outside ConversationIndex. */
 export class UserMessageNavigator {
-  private cursor?: { id: string; top: number };
+  private cursor?: { id: string };
   private completeWithoutShells = false;
   private disposed = false;
   private navigating = false;
@@ -39,25 +39,36 @@ export class UserMessageNavigator {
     scrollRoot.addEventListener('touchstart', this.manualMovement, { passive: true });
     scrollRoot.addEventListener('pointerdown', this.manualMovement, { passive: true });
     document.addEventListener('keydown', this.manualMovement, true);
+    document.addEventListener('scroll', this.onScroll, true);
+    window.addEventListener('resize', this.scheduleRefresh);
     this.refresh();
   }
 
   private manualMovement = (event: Event): void => {
     if (inExtension(event) || (event instanceof KeyboardEvent && !navigationKeys.includes(event.key))) return;
     this.cursor = undefined;
-    if (this.frame !== undefined) cancelAnimationFrame(this.frame);
+    this.scheduleRefresh();
+  };
+
+  private onScroll = (event: Event): void => {
+    if (event.target === this.scrollRoot || (event.target === document && this.scrollRoot === document.scrollingElement)) this.scheduleRefresh();
+  };
+
+  private scheduleRefresh = (): void => {
+    if (this.disposed || this.frame !== undefined) return;
     this.frame = requestAnimationFrame(() => { this.frame = undefined; this.refresh(); });
   };
 
   private reference(slots: readonly TurnSlot[]): number {
-    if (this.cursor && Math.abs(this.scrollRoot.scrollTop - this.cursor.top) <= 4) {
+    // Virtualized layout corrections must not discard the last explicit destination.
+    if (this.cursor) {
       const slot = this.index.getSlot(this.cursor.id);
       const position = slot ? slots.indexOf(slot) : -1;
       if (position >= 0) return position;
     }
     this.cursor = undefined;
     if (this.scrollRoot.scrollHeight - this.scrollRoot.clientHeight - this.scrollRoot.scrollTop <= 4) return slots.length;
-    const readingLine = this.scrollRoot.getBoundingClientRect().top + this.scrollRoot.clientHeight * 0.23;
+    const readingLine = scrollViewportTop(this.scrollRoot) + this.scrollRoot.clientHeight * 0.23;
     let preceding = -1;
     for (let position = 0; position < slots.length; position++) {
       const slot = slots[position]!;
@@ -128,7 +139,7 @@ export class UserMessageNavigator {
         if (!slot.anchor.isConnected) throw new Error('消息尚未加载，请先加载完整会话。');
         onProgress('正在加载附近的消息…');
         moves++;
-        scrollToMessage(slot.anchor, false);
+        scrollToMessage(slot.anchor, false, scrollRoot);
         const body = await waitForBody(index, slot, combined);
         check();
         if (!body) throw new Error('这条消息暂时无法加载，请稍后重试。');
@@ -140,7 +151,8 @@ export class UserMessageNavigator {
       index.reconcile();
       let destination: TurnSlot | undefined;
       if (directional) {
-        if (!initialSlots.some(slot => slot.persistentShell) && !this.completeWithoutShells) {
+        const nearby = userCandidates(initialSlots, initialReference, target as UserNavigationDirection)[0];
+        if (!initialSlots.some(slot => slot.persistentShell) && !this.completeWithoutShells && !nearby?.anchor.isConnected) {
           const result = await this.materializer.collect({ signal: combined, onProgress });
           check();
           tracker.pause(true);
@@ -172,7 +184,7 @@ export class UserMessageNavigator {
       check();
       if (expectedId && index.resolveId(expectedId) !== destination.record?.id) throw new Error('消息已变化，请重试。');
       moves++;
-      scrollToMessage(body, smooth);
+      scrollToMessage(body, smooth, scrollRoot);
       const deadline = Date.now() + MATERIALIZATION_LIMITS.stepWait;
       let lastTop = scrollRoot.scrollTop;
       let stableAt = Date.now();
@@ -180,14 +192,24 @@ export class UserMessageNavigator {
         await pause(40);
         check();
         if (Math.abs(scrollRoot.scrollTop - lastTop) > 0.5) { lastTop = scrollRoot.scrollTop; stableAt = Date.now(); }
-        if (Date.now() - stableAt >= 160) break;
+        if (Date.now() - stableAt >= 160) {
+          index.reconcile();
+          const mounted = destination.body;
+          if (!mounted?.isConnected) { await load(destination); stableAt = Date.now(); continue; }
+          if (Math.abs(messageScrollTop(mounted, scrollRoot) - scrollRoot.scrollTop) <= 4) break;
+          // Remounted bodies can change layout after smooth scrolling has stopped.
+          moves++;
+          scrollToMessage(mounted, false, scrollRoot);
+          lastTop = scrollRoot.scrollTop;
+          stableAt = Date.now();
+        }
       }
       if (Date.now() - stableAt < 160) throw new Error('滚动尚未完成，请重试。');
       index.reconcile();
       check();
       targetId = destination.record?.id;
       if (!targetId || !index.getElement(targetId)?.isConnected) throw new Error('这条消息暂时无法加载，请稍后重试。');
-      this.cursor = { id: targetId, top: scrollRoot.scrollTop };
+      this.cursor = { id: targetId };
       succeeded = true;
     } finally {
       clearTimeout(timer);
@@ -208,11 +230,11 @@ export class UserMessageNavigator {
             } while (Date.now() < restoreDeadline && Date.now() - stableSince < MATERIALIZATION_LIMITS.quiet);
           }
           else if (originalSlot?.anchor.isConnected && originalOffset !== undefined) {
-            originalSlot.anchor.scrollIntoView({ block: 'start', behavior: 'instant' });
+            scrollRoot.scrollBy({ top: originalSlot.anchor.getBoundingClientRect().top - originalOffset, behavior: 'instant' });
             await pause(60);
             if (!userMoved && index.active && originalSlot.anchor.isConnected) scrollRoot.scrollBy({ top: originalSlot.anchor.getBoundingClientRect().top - originalOffset, behavior: 'instant' });
           } else scrollRoot.scrollTo({ top: originalTop, behavior: 'instant' });
-          this.cursor = !userMoved && originalCursor ? { ...originalCursor, top: scrollRoot.scrollTop } : undefined;
+          this.cursor = !userMoved ? originalCursor : undefined;
         } else this.cursor = undefined;
       }
       scrollRoot.removeEventListener('wheel', interrupt);
@@ -241,5 +263,7 @@ export class UserMessageNavigator {
     this.scrollRoot.removeEventListener('touchstart', this.manualMovement);
     this.scrollRoot.removeEventListener('pointerdown', this.manualMovement);
     document.removeEventListener('keydown', this.manualMovement, true);
+    document.removeEventListener('scroll', this.onScroll, true);
+    window.removeEventListener('resize', this.scheduleRefresh);
   }
 }
