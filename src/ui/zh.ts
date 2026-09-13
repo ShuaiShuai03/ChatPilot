@@ -39,8 +39,6 @@ export const zh = {
   popupSubtitle: '会话导航与导出',
   navigatorEnabled: '启用导航器',
   navigatorEnabledHint: '在 ChatGPT 页面显示会话导航栏。',
-  smoothScroll: '平滑滚动',
-  smoothScrollHint: '跳转到消息时使用平滑动画。',
   defaultExportFormat: '默认导出格式',
   defaultExportScope: '默认导出范围',
   navigatorWidth: '导航栏宽度',

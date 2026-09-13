@@ -11,7 +11,7 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   navigatorEnabled: true,
-  smoothScroll: true,
+  smoothScroll: false,
   defaultExportFormat: 'md',
   defaultExportMode: 'all',
   navigatorWidth: 320,
@@ -21,7 +21,8 @@ export function normalizeSettings(value: unknown): Settings {
   const candidate = value && typeof value === 'object' ? value as Record<string, unknown> : {};
   return {
     navigatorEnabled: typeof candidate.navigatorEnabled === 'boolean' ? candidate.navigatorEnabled : true,
-    smoothScroll: typeof candidate.smoothScroll === 'boolean' ? candidate.smoothScroll : true,
+    // Preserve the stored schema while retiring animated navigation.
+    smoothScroll: false,
     defaultExportFormat: candidate.defaultExportFormat === 'json' || candidate.defaultExportFormat === 'txt' ? candidate.defaultExportFormat : 'md',
     defaultExportMode: candidate.defaultExportMode === 'assistant' ? 'assistant' : 'all',
     navigatorWidth: typeof candidate.navigatorWidth === 'number' && Number.isFinite(candidate.navigatorWidth)

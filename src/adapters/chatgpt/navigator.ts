@@ -71,8 +71,8 @@ export function messageScrollTop(element: HTMLElement, root: HTMLElement): numbe
   return Math.max(0, Math.min(top, root.scrollHeight - root.clientHeight));
 }
 
-export function scrollToMessage(element: HTMLElement, smooth: boolean, root: HTMLElement): void {
+export function scrollToMessage(element: HTMLElement, _smooth: boolean, root: HTMLElement): void {
   // Move only the conversation, not every scrollable ancestor or the page viewport.
   root.scrollTo({ top: messageScrollTop(element, root),
-    behavior: smooth && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 'smooth' : 'instant' });
+    behavior: 'instant' });
 }

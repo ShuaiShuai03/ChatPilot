@@ -65,18 +65,6 @@ function Popup() {
             onChange={(event) => void save({ ...settings, navigatorEnabled: event.target.checked })}
           />
         </label>
-        <label className="popup-toggle">
-          <span>
-            <strong>{zh.smoothScroll}</strong>
-            <small>{zh.smoothScrollHint}</small>
-          </span>
-          <input
-            type="checkbox"
-            aria-label={zh.smoothScroll}
-            checked={settings.smoothScroll}
-            onChange={(event) => void save({ ...settings, smoothScroll: event.target.checked })}
-          />
-        </label>
         <label>
           {zh.defaultExportFormat}
           <select
