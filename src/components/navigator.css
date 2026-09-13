@@ -1,0 +1,129 @@
+:host {
+  color-scheme: light dark;
+}
+
+.chatpilot-navigator {
+  box-sizing: border-box;
+  position: fixed;
+  z-index: 2147483646;
+  top: max(80px, env(safe-area-inset-top));
+  right: 16px;
+  bottom: max(152px, env(safe-area-inset-bottom));
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #26313d;
+}
+
+.chatpilot-navigator *, .chatpilot-navigator *::before, .chatpilot-navigator *::after { box-sizing: border-box; }
+.chatpilot-layout { height: 100%; display: flex; align-items: stretch; gap: 8px; }
+
+.chatpilot-rail-button {
+  height: 100%;
+  min-height: 156px;
+  width: 28px;
+  border: 1px solid #c9d4df;
+  border-radius: 14px;
+  background: #f8fbfd;
+  color: #35506a;
+  box-shadow: 0 6px 24px rgba(28, 47, 67, .16);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px 3px;
+}
+
+.chatpilot-rail-button__label { writing-mode: vertical-rl; letter-spacing: .08em; text-orientation: mixed; }
+.chatpilot-count { font-variant-numeric: tabular-nums; font-size: 11px; color: #617589; }
+.chatpilot-rail-button:hover { background: #eef5f9; }
+.chatpilot-rail-button:focus-visible, .chatpilot-panel button:focus-visible, .chatpilot-panel input:focus-visible, .chatpilot-panel select:focus-visible, .chatpilot-direction-button:focus-visible, .chatpilot-compact-feedback button:focus-visible { outline: 2px solid #2373a5; outline-offset: 2px; }
+
+.chatpilot-direction-controls { display: flex; flex: 0 0 36px; flex-direction: column; justify-content: center; gap: 8px; }
+.chatpilot-direction-button { width: 36px; height: 36px; border: 1px solid #c9d4df; border-radius: 10px; background: #f8fbfd; color: #35506a; box-shadow: 0 4px 16px rgba(28, 47, 67, .14); cursor: pointer; font: 600 19px/1 system-ui, sans-serif; }
+.chatpilot-direction-button:hover { background: #eef5f9; }
+.chatpilot-direction-button:disabled { cursor: not-allowed; opacity: .48; }
+
+.chatpilot-compact-feedback { align-self: center; width: min(220px, calc(100vw - 112px)); border: 1px solid #c9d4df; border-radius: 10px; background: #f9fbfd; box-shadow: 0 6px 24px rgba(28, 47, 67, .16); padding: 8px; }
+.chatpilot-compact-feedback .chatpilot-error { margin: 0 0 7px; }
+.chatpilot-compact-feedback .chatpilot-progress { margin-bottom: 7px; }
+.chatpilot-compact-feedback .chatpilot-load-button { margin: 0; }
+
+.chatpilot-panel {
+  width: min(var(--chatpilot-width, 320px), calc(100vw - 76px));
+  height: 100%;
+  min-height: 220px;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  border: 1px solid #c9d4df;
+  border-radius: 14px;
+  background: #f9fbfd;
+  box-shadow: 0 12px 36px rgba(28, 47, 67, .2);
+}
+
+.chatpilot-panel__header { display: flex; align-items: flex-start; justify-content: space-between; padding: 14px 14px 10px; border-bottom: 1px solid #dce5ec; }
+.chatpilot-panel h2 { margin: 0; color: #203342; font-size: 16px; line-height: 1.2; }
+.chatpilot-panel__header p { margin: 4px 0 0; color: #617589; font-size: 12px; }
+.chatpilot-icon-button { appearance: none; border: 0; background: transparent; color: #526879; font: inherit; font-size: 23px; line-height: 1; cursor: pointer; padding: 0 3px; }
+
+.chatpilot-search { display: grid; gap: 4px; padding: 10px 14px; }
+.chatpilot-search label, .chatpilot-export label { color: #526879; font-size: 11px; font-weight: 600; }
+.chatpilot-search input, .chatpilot-export select { width: 100%; border: 1px solid #bac9d5; border-radius: 7px; background: #fff; color: inherit; font: inherit; padding: 7px 8px; }
+
+.chatpilot-selection-controls { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 14px 10px; border-bottom: 1px solid #dce5ec; }
+.chatpilot-panel button { font: inherit; }
+.chatpilot-selection-controls button, .chatpilot-load-button, .chatpilot-progress button { border: 1px solid #bac9d5; border-radius: 6px; background: #fff; color: #35506a; cursor: pointer; padding: 5px 7px; }
+.chatpilot-selection-controls button:hover, .chatpilot-load-button:hover, .chatpilot-progress button:hover { background: #eef5f9; }
+.chatpilot-panel button:disabled, .chatpilot-panel select:disabled { cursor: not-allowed; opacity: .55; }
+
+.chatpilot-content { min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.chatpilot-content__notices { padding: 8px 14px 0; }
+.chatpilot-content__notices .chatpilot-error { margin: 0 0 7px; }
+.chatpilot-content__notices .chatpilot-load-button { margin: 0; }
+.chatpilot-error { margin: 8px 14px 0; border-left: 3px solid #bd4d49; color: #8e302e; padding: 5px 7px; font-size: 12px; }
+.chatpilot-message-list-wrap { min-height: 0; overflow-y: auto; padding: 8px; }
+.chatpilot-message-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.chatpilot-message { display: flex; align-items: stretch; gap: 4px; border: 1px solid transparent; border-radius: 8px; padding: 5px; }
+.chatpilot-message[aria-current="true"] { border-color: #67a1c4; background: #eaf4fa; }
+.chatpilot-message:hover { background: #f0f5f8; }
+.chatpilot-message__select { display: flex; align-items: flex-start; padding-top: 3px; }
+.chatpilot-message__select input { accent-color: #2373a5; }
+.chatpilot-message__navigate { min-width: 0; flex: 1; border: 0; background: transparent; color: inherit; cursor: pointer; padding: 0; text-align: left; }
+.chatpilot-message__meta { display: block; color: #50687c; font-size: 11px; font-weight: 650; }
+.chatpilot-message__preview { display: -webkit-box; overflow: hidden; margin-top: 2px; color: #2f3d49; font-size: 12px; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.chatpilot-empty { margin: 14px 6px; color: #617589; text-align: center; }
+
+.chatpilot-panel__footer { border-top: 1px solid #dce5ec; background: #f4f8fb; padding: 9px 14px 12px; }
+.chatpilot-load-button { width: 100%; margin-bottom: 9px; }
+.chatpilot-progress { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 30px; margin-bottom: 9px; color: #526879; font-size: 12px; }
+.chatpilot-export { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.chatpilot-export label { display: grid; gap: 3px; }
+.chatpilot-export-button { grid-column: 1 / -1; border: 1px solid #2373a5; border-radius: 7px; background: #2373a5; color: #fff; cursor: pointer; padding: 7px 9px; }
+.chatpilot-export-button:hover { background: #165b87; }
+.chatpilot-export-help { grid-column: 1 / -1; margin: -2px 0 0; color: #8e5b18; font-size: 11px; }
+
+@media (max-width: 520px) {
+  .chatpilot-navigator { right: 8px; top: 64px; bottom: 88px; }
+  .chatpilot-panel { width: min(var(--chatpilot-width, 320px), calc(100vw - 60px)); }
+  .chatpilot-compact-feedback { width: min(220px, calc(100vw - 96px)); }
+}
+
+@media (prefers-color-scheme: dark) {
+  .chatpilot-navigator { color: #e2e9ee; }
+  .chatpilot-rail-button, .chatpilot-panel, .chatpilot-direction-button, .chatpilot-compact-feedback { border-color: #405361; background: #17232c; box-shadow: 0 12px 36px rgba(0, 0, 0, .36); }
+  .chatpilot-rail-button, .chatpilot-direction-button { color: #c4d8e6; }
+  .chatpilot-rail-button:hover, .chatpilot-direction-button:hover, .chatpilot-selection-controls button:hover, .chatpilot-load-button:hover, .chatpilot-progress button:hover, .chatpilot-message:hover { background: #223641; }
+  .chatpilot-panel h2 { color: #f0f5f8; }
+  .chatpilot-panel__header p, .chatpilot-search label, .chatpilot-export label, .chatpilot-message__meta, .chatpilot-progress, .chatpilot-empty, .chatpilot-count { color: #adc0cf; }
+  .chatpilot-panel__header, .chatpilot-selection-controls, .chatpilot-panel__footer { border-color: #405361; }
+  .chatpilot-panel__footer { background: #142028; }
+  .chatpilot-search input, .chatpilot-export select, .chatpilot-selection-controls button, .chatpilot-load-button, .chatpilot-progress button { border-color: #526879; background: #1e303a; color: #e2e9ee; }
+  .chatpilot-message[aria-current="true"] { border-color: #4c8eb6; background: #1c3544; }
+  .chatpilot-message__preview { color: #d9e3e9; }
+  .chatpilot-icon-button { color: #c4d8e6; }
+  .chatpilot-error { color: #ffb9b4; }
+  .chatpilot-export-help { color: #edc27e; }
+}

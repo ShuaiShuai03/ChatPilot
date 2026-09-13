@@ -1,0 +1,30 @@
+:root { color-scheme: light dark; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #26313d; background: #f7fafc; }
+* { box-sizing: border-box; }
+body { width: 330px; margin: 0; }
+.popup { padding: 18px; }
+header { border-bottom: 1px solid #d6e0e8; margin-bottom: 14px; padding-bottom: 12px; }
+h1 { color: #203342; font-size: 19px; line-height: 1.2; margin: 0; }
+header p { color: #617589; font-size: 12px; margin: 4px 0 0; }
+form { display: grid; gap: 14px; }
+label { color: #405766; display: grid; font-size: 12px; font-weight: 650; gap: 6px; }
+select, input[type="range"] { width: 100%; }
+select { background: #fff; border: 1px solid #bac9d5; border-radius: 7px; color: inherit; font: inherit; font-weight: 400; padding: 7px 8px; }
+input[type="range"] { accent-color: #2373a5; }
+output { color: #617589; float: right; font-weight: 400; }
+.popup-toggle { align-items: center; display: flex; justify-content: space-between; }
+.popup-toggle span { display: grid; gap: 2px; }
+.popup-toggle small { color: #617589; font-size: 11px; font-weight: 400; }
+.popup-toggle input { accent-color: #2373a5; block-size: 17px; inline-size: 17px; }
+.popup-saved { color: #24734b; font-size: 12px; height: 16px; margin: 12px 0 0; }
+.popup-privacy { border-top: 1px solid #d6e0e8; color: #617589; font-size: 11px; line-height: 1.45; margin: 4px 0 0; padding-top: 12px; }
+select:focus-visible, input:focus-visible { outline: 2px solid #2373a5; outline-offset: 2px; }
+@media (prefers-color-scheme: dark) {
+  :root { background: #17232c; color: #e2e9ee; }
+  h1 { color: #f0f5f8; }
+  header, .popup-privacy { border-color: #405361; }
+  label { color: #d7e2e8; }
+  select { background: #1e303a; border-color: #526879; color: #e2e9ee; }
+  header p, .popup-toggle small, output, .popup-privacy { color: #a7bbc8; }
+}
+.popup fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 14px; }
+.popup [role="alert"] { color: #a33d36; font-size: 12px; }

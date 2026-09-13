@@ -1,0 +1,37 @@
+{
+  "name": "chatpilot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local conversation navigation and export for ChatGPT Web",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "packageManager": "pnpm@11.24.0",
+  "scripts": {
+    "dev": "wxt -b chrome",
+    "postinstall": "wxt prepare",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "pnpm build && playwright test",
+    "build": "wxt build -b chrome"
+  },
+  "dependencies": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "turndown": "7.2.4",
+    "turndown-plugin-gfm": "1.0.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "22.20.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/turndown": "5.0.6",
+    "@wxt-dev/module-react": "1.2.2",
+    "linkedom": "0.18.13",
+    "typescript": "7.0.2",
+    "vitest": "5.0.0",
+    "wxt": "0.21.4"
+  }
+}
