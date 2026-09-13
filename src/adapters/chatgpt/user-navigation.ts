@@ -1,7 +1,7 @@
 import type { ConversationIndex, TurnSlot } from './index';
 import type { MessageRecord, UserNavigationDirection } from '../../conversation/types';
 import { ConversationMaterializer, MATERIALIZATION_LIMITS, waitForBody } from './materializer';
-import { CurrentMessageTracker, messageScrollTop, scrollToMessage, scrollViewportTop } from './navigator';
+import { CurrentMessageTracker, scrollToMessage, scrollViewportTop } from './navigator';
 
 /** Unknown slots are candidates until the shared parser establishes their role. */
 export function userCandidates<T extends { record?: MessageRecord }>(slots: readonly T[], reference: number, direction: UserNavigationDirection): T[] {
@@ -185,6 +185,17 @@ export class UserMessageNavigator {
       if (expectedId && index.resolveId(expectedId) !== destination.record?.id) throw new Error('消息已变化，请重试。');
       moves++;
       scrollToMessage(body, smooth, scrollRoot);
+      const destinationIsReadable = (): boolean => {
+        const mounted = destination?.body;
+        if (!mounted?.isConnected) return false;
+        const rect = mounted.getBoundingClientRect();
+        const top = scrollViewportTop(scrollRoot);
+        const height = scrollRoot.clientHeight;
+        return height > 0 && rect.bottom > top && (
+          (rect.top >= top - 4 && rect.top < top + height * 0.85)
+          || (rect.height > height && rect.top <= top && rect.bottom > top + height * 0.23)
+        );
+      };
       const deadline = Date.now() + MATERIALIZATION_LIMITS.stepWait;
       let lastTop = scrollRoot.scrollTop;
       let stableAt = Date.now();
@@ -194,19 +205,27 @@ export class UserMessageNavigator {
         if (Math.abs(scrollRoot.scrollTop - lastTop) > 0.5) { lastTop = scrollRoot.scrollTop; stableAt = Date.now(); }
         if (Date.now() - stableAt >= 160) {
           index.reconcile();
-          const mounted = destination.body;
-          if (!mounted?.isConnected) { await load(destination); stableAt = Date.now(); continue; }
-          if (Math.abs(messageScrollTop(mounted, scrollRoot) - scrollRoot.scrollTop) <= 4) break;
-          // Remounted bodies can change layout after smooth scrolling has stopped.
-          moves++;
-          scrollToMessage(mounted, false, scrollRoot);
-          lastTop = scrollRoot.scrollTop;
-          stableAt = Date.now();
+          if (destinationIsReadable()) break;
         }
       }
-      if (Date.now() - stableAt < 160) throw new Error('滚动尚未完成，请重试。');
+      // Reaching readable content is success even if host layout never becomes
+      // pixel-stationary. Repeated alignment fights virtualization and used to
+      // turn a successful jump into a timeout followed by restoration.
       index.reconcile();
       check();
+      if (!destinationIsReadable()) {
+        const mounted = await load(destination);
+        check();
+        moves++;
+        scrollToMessage(mounted, false, scrollRoot);
+        await pause(MATERIALIZATION_LIMITS.quiet);
+      } else {
+        // Stop any remaining smooth animation at the already readable target.
+        scrollRoot.scrollTo({ top: scrollRoot.scrollTop, behavior: 'instant' });
+      }
+      index.reconcile();
+      check();
+      if (!destinationIsReadable()) throw new Error('目标消息尚未进入阅读区域，请重试。');
       targetId = destination.record?.id;
       if (!targetId || !index.getElement(targetId)?.isConnected) throw new Error('这条消息暂时无法加载，请稍后重试。');
       this.cursor = { id: targetId };
